@@ -1,0 +1,96 @@
+import os
+import msvcrt
+import ctypes
+
+# Funkcje do obsługi konsoli w systemie Windows
+STD_OUTPUT_HANDLE = -11
+std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+
+def set_cursor_position(x, y):
+    coord = ctypes.wintypes._COORD(x, y)
+    ctypes.windll.kernel32.SetConsoleCursorPosition(std_out_handle, coord)
+
+def set_text_color(color):
+    ctypes.windll.kernel32.SetConsoleTextAttribute(std_out_handle, color)
+
+# Klasa reprezentująca interaktywne pole tekstowe
+class TextField:
+    def __init__(self, width):
+        self.width = width
+        self.text = ""
+        self.cursor_position = 0
+
+    def display(self):
+        os.system('cls')  # Wyczyść konsolę
+        print("Pole tekstowe:")
+        print("-" * (self.width + 2))  # Linia górna
+
+        # Wypisz tekst z uwzględnieniem kursora
+        if len(self.text) <= self.width:
+            print("|" + self.text[:self.cursor_position] + "*" + self.text[self.cursor_position:] + "|")
+        else:
+            print("|" + self.text[self.cursor_position:self.cursor_position + self.width] + "|")
+
+        print("-" * (self.width + 2))  # Linia dolna
+
+    def insert_character(self, char):
+        # Dodaj znak w miejscu kursora
+        if len(self.text) < self.width:
+            self.text = self.text[:self.cursor_position] + char + self.text[self.cursor_position:]
+            self.cursor_position += 1
+        self.display()
+
+    def delete_character(self):
+        # Usuń znak przed kursorem
+        if self.cursor_position > 0:
+            self.text = self.text[:self.cursor_position - 1] + self.text[self.cursor_position:]
+            self.cursor_position -= 1
+        self.display()
+
+    def move_cursor_left(self):
+        # Przesuń kursor w lewo
+        if self.cursor_position > 0:
+            self.cursor_position -= 1
+        self.display()
+
+    def move_cursor_right(self):
+        # Przesuń kursor w prawo
+        if self.cursor_position < len(self.text):
+            self.cursor_position += 1
+        self.display()
+
+# Funkcja główna programu
+def main():
+    # Ustawienia konsoli
+    os.system('mode con: cols=40 lines=10')  # Ustaw szerokość i wysokość konsoli
+    set_cursor_position(5, 5)  # Ustaw pozycję kursora
+
+    # Stwórz interaktywne pole tekstowe
+    text_field = TextField(10)
+    text_field.display()
+
+    # Pętla obsługująca wejście użytkownika
+    while True:
+        if msvcrt.kbhit():  # Sprawdź, czy użytkownik nacisnął klawisz
+            key = msvcrt.getch()  # Odczytaj naciśnięty klawisz
+            if key == b'\x1b':  # ESC - wyjście z pętli
+                break
+            elif key == b'\xe0':  # Klawisz specjalny (np. strzałka)
+                arrow_key = msvcrt.getch()  # Odczytaj kolejny bajt (określający kierunek strzałki)
+                if arrow_key == b'H':  # Strzałka w górę
+                    pass  # Możesz obsłużyć to wedle uznania
+                elif arrow_key == b'P':  # Strzałka w dół
+                    pass  # Możesz obsłużyć to wedle uznania
+                elif arrow_key == b'K':  # Strzałka w lewo
+                    text_field.move_cursor_left()
+                elif arrow_key == b'M':  # Strzałka w prawo
+                    text_field.move_cursor_right()
+            else:  # Zwykły znak
+                char = key.decode('utf-8')  # Odczytaj znak z klawisza
+                if char.isprintable() and len(text_field.text) < text_field.width:
+                    text_field.insert_character(char)
+                elif key == b'\x08':  # Backspace - usuń znak
+                    text_field.delete_character()
+
+if __name__ == "__main__":
+    main()
